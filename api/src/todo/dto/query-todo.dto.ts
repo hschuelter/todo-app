@@ -1,4 +1,4 @@
-import { IsOptional, IsEnum, IsString } from 'class-validator';
+import { IsOptional, IsEnum, IsString, IsUUID } from 'class-validator';
 import { TodoStatus } from '../entities/todo.entity';
 
 export class QueryTodoDto {
@@ -9,4 +9,8 @@ export class QueryTodoDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
 }

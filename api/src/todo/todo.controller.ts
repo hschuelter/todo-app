@@ -1,4 +1,3 @@
-
 import {
   Controller,
   Get,
@@ -31,10 +30,10 @@ export class TodoController {
     return this.todoService.findAll(queryDto);
   }
 
-//   @Get('stats')
-//   getStats() {
-//     return this.todoService.getStats();
-//   }
+  @Get('stats')
+  getStats(@Query('userId') userId?: string) {
+    return this.todoService.getStats(userId);
+  }
 
   @Get(':id')
   findOne(@Param('id') id: string) {

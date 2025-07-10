@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsDateString, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsDateString, IsUUID, MaxLength } from 'class-validator';
 import { TodoStatus } from '../entities/todo.entity';
 
 export class CreateTodoDto {
@@ -17,4 +17,7 @@ export class CreateTodoDto {
   @IsOptional()
   @IsDateString()
   dueDate?: string;
+
+  @IsUUID()
+  userId: string;
 }

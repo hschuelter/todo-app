@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Todo } from './entities/todo.entity';
+import { User } from '../user/entities/user.entity';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { QueryTodoDto } from './dto/query-todo.dto';
@@ -11,16 +12,28 @@ export class TodoService {
   constructor(
     @InjectRepository(Todo)
     private todoRepository: Repository<Todo>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
   async create(createTodoDto: CreateTodoDto): Promise<Todo> {
+    // Verify user exists
+    const user = await this.userRepository.findOne({
+      where: { id: createTodoDto.userId }
+    });
+
+    if (!user) {
+      throw new BadRequestException(`User with ID ${createTodoDto.userId} not found`);
+    }
+
     const todo = this.todoRepository.create(createTodoDto);
     return this.todoRepository.save(todo);
   }
 
   async findAll(queryDto: QueryTodoDto): Promise<Todo[]> {
-    const { status, search } = queryDto;
-    const queryBuilder = this.todoRepository.createQueryBuilder('todo');
+    const { status, search, userId } = queryDto;
+    const queryBuilder = this.todoRepository.createQueryBuilder('todo')
+      .leftJoinAndSelect('todo.user', 'user');
 
     if (status) {
       queryBuilder.andWhere('todo.status = :status', { status });
@@ -33,16 +46,25 @@ export class TodoService {
       );
     }
 
+    if (userId) {
+      queryBuilder.andWhere('todo.userId = :userId', { userId });
+    }
+
     return queryBuilder
       .orderBy('todo.createdAt', 'DESC')
       .getMany();
   }
 
   async findOne(id: string): Promise<Todo> {
-    const todo = await this.todoRepository.findOne({ where: { id } });
+    const todo = await this.todoRepository.findOne({
+      where: { id },
+      relations: ['user']
+    });
+
     if (!todo) {
       throw new NotFoundException(`Todo with ID ${id} not found`);
     }
+
     return todo;
   }
 
@@ -57,18 +79,28 @@ export class TodoService {
     await this.todoRepository.remove(todo);
   }
 
-//   async getStats(): Promise<any> {
-//     const total = await this.todoRepository.count();
-//     const completed = await this.todoRepository.count({ where: { status: 'completed' } });
-//     const pending = await this.todoRepository.count({ where: { status: 'pending' } });
-//     const inProgress = await this.todoRepository.count({ where: { status: 'in_progress' } });
+  async getStats(userId?: string): Promise<any> {
+    const queryBuilder = this.todoRepository.createQueryBuilder('todo');
+    
+    if (userId) {
+      queryBuilder.where('todo.userId = :userId', { userId });
+    }
 
-//     return {
-//       total,
-//       completed,
-//       pending,
-//       inProgress,
-//       completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-//     };
-//   }
+    const total = await queryBuilder.getCount();
+    const completed = await queryBuilder.andWhere('todo.status = :status', { status: 'completed' }).getCount();
+    
+    queryBuilder.andWhere('todo.status = :status', { status: 'pending' });
+    const pending = await queryBuilder.getCount();
+    
+    queryBuilder.andWhere('todo.status = :status', { status: 'in_progress' });
+    const inProgress = await queryBuilder.getCount();
+
+    return {
+      total,
+      completed,
+      pending,
+      inProgress,
+      completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+    };
+  }
 }

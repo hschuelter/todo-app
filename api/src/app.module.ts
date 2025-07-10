@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { TodoModule } from './todo/todo.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { TodoModule } from './todo/todo.module';
       logging: process.env.NODE_ENV === 'development',
     }),
     TodoModule,
+    UserModule,
   ],
   controllers: [AppController],
 })
