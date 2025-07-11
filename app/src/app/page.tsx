@@ -1,103 +1,402 @@
-import Image from "next/image";
+'use client';
+
+import { describe, todo } from 'node:test';
+import { useState, useEffect } from 'react';
+
+interface Todo {
+  id: number;
+  title: string;
+  description: string;
+  status: string;
+  userId: number;
+  isOpen?: boolean
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [isAddTodoModalOpen, setIsAddTodoModalOpen] = useState(false);
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [todoTitle, setTodoTitle] = useState<string>('');
+  const [todoDescription, setTodoDescription] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Mock user ID - will be replaced with actual user from JWT
+  const userId: string = "0d1a02e3-4733-4424-8d9e-da9cc7c4617c";
+
+  // API base URL - adjust this to match your backend
+  const API_BASE_URL: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+  // Fetch todos
+  const fetchTodos = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/todos?userId=${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch todos');
+      }
+      const data: Todo[] = await response.json();
+      setTodos(data);
+    } catch (err) {
+      setError('Failed to load todos');
+      console.error('Error fetching todos:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add new todo
+  const addTodo = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault();
+    if (!todoTitle.trim()) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/todos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: todoTitle,
+          description: todoDescription,
+          status: "pending",
+          userId: userId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add todo');
+      }
+
+      const todo: Todo = await response.json();
+      setTodos([...todos, todo]);
+      setTodoTitle('');
+      setTodoDescription('');
+      setIsAddTodoModalOpen(false);
+    } catch (err) {
+      setError('Failed to add todo');
+      console.error('Error adding todo:', err);
+    }
+  };
+
+  // Toggle todo completion
+  const toggleTodo = async (id: number, status: string): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: status === "completed" ? "pending" : "completed",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update todo');
+      }
+
+      const updatedTodo: Todo = await response.json();
+      setTodos(todos.map(todo => 
+        todo.id === id ? updatedTodo : todo
+      ));
+    } catch (err) {
+      setError('Failed to update todo');
+      console.error('Error updating todo:', err);
+    }
+  };
+
+  // Delete todo
+  const deleteTodo = async (id: number): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete todo');
+      }
+
+      setTodos(todos.filter(todo => todo.id !== id));
+    } catch (err) {
+      setError('Failed to delete todo');
+      console.error('Error deleting todo:', err);
+    }
+  };
+
+  // Open todo
+  const openTodo = async (id: number): Promise<void> => {
+    setTodos(prevTodos => 
+      prevTodos.map(todo => 
+        todo.id === id 
+          ? { ...todo, isOpen: !todo.isOpen }
+          : todo
+      )
+    );
+  };
+
+  // Save todo changes
+  const saveTodo = async (id: number): Promise<void> => {
+    const currentTodo = todos.find(t => t.id === id);
+    try {
+      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: currentTodo?.title,
+          description: currentTodo?.description,
+          status: currentTodo?.status,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update todo');
+      }
+
+      const updatedTodo: Todo = await response.json();
+      setTodos(todos.map(todo => 
+        todo.id === id ? updatedTodo : todo
+      ));
+    } catch (err) {
+      setError('Failed to update todo');
+      console.error('Error updating todo:', err);
+    }
+
+  };
+
+  const updateTodoTitle = (todo: Todo, title: string) => {
+    todo.title = title;
+    setTodos(todos.map(t => t.id === todo.id ? todo : t));
+  };
+  
+  const updateTodoDescription = (todo: Todo, description: string) => {
+    todo.description = description;
+    setTodos(todos.map(t => t.id === todo.id ? todo : t));
+  };
+
+  useEffect(() => {
+    fetchTodos();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <div className="bg-white rounded-lg shadow-md p-6">
+
+          
+          <div className="flex justify-between items-start mb-6">
+            <h1 className="text-3xl font-bold text-gray-800">
+              My To Dos
+            </h1>
+
+            {/* Button to open modal */}
+            <button
+              onClick={() => setIsAddTodoModalOpen(true)}
+              className="w-10 h-10 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center"
+              title="Add new todo"
+              > 
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
+          
+          
+          {/* Modal Overlay */}
+          {isAddTodoModalOpen && (
+            <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                {/* Modal Header */}
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800">Add New Todo</h2>
+                  <button
+                    onClick={() => setIsAddTodoModalOpen(false)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* Add Todo Form */}
+                <form onSubmit={addTodo}>
+                  <div className="space-y-4">
+                    {/* Title */}
+                    <div>
+                      <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                        Title
+                      </label>
+                      <input
+                        id="title"
+                        type="text"
+                        value={todoTitle}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTodoTitle(e.target.value)}
+                        placeholder="Type a title..."
+                        className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                      </label>
+                      <textarea 
+                        id="description"
+                        value={todoDescription}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setTodoDescription(e.target.value)}
+                        placeholder="Type a description for your task..."
+                        rows={3}
+                        className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      />
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex justify-end space-x-3 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddTodoModalOpen(false)}
+                        className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading todos...</p>
+            </div>
+          ) : (
+            <>
+              {/* Todo List */}
+              {todos.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 bg-white">
+                  <p>No todos yet. Add one above!</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {todos.map((todo: Todo) => (
+                    <div
+                      key={todo.id}
+                      className="flex flex-col gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors shadow-md"
+                    >
+
+                      {/* Title & Checkbox */}
+                      <div className='flex items-center gap-3'> 
+                        <input
+                          type="checkbox"
+                          checked={todo.status === "completed"}
+                          onChange={() => toggleTodo(todo.id, todo.status)}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                        />
+                        <input
+                          type="text"
+                          value={todo.title}
+                          onChange={(e) => updateTodoTitle(todo, e.target.value)}
+                          className={`flex-1 bg-transparent border-none outline-none text-lg font-medium ${
+                            todo.status === "completed"
+                              ? 'line-through text-gray-500'
+                              : 'text-gray-800'
+                          } focus:bg-white focus:border focus:border-blue-200 focus:rounded px-2 py-1 transition-colors`}
+                          placeholder="Todo title..."
+                        />
+                        
+                        <button
+                          onClick={() => openTodo(todo.id)}
+                          className="px-1 py-1 bg-gray-200 text-white hover:bg-gray-400 rounded transition-colors"
+                        >
+                          <svg 
+                            className="w-4 h-4 transition-transform duration-200"
+                            style={{ transform: todo.isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* Description */}
+                      {todo.isOpen && (
+                        <div className="space-y-3">
+                          <textarea
+                            value={todo.description || ''}
+                            onChange={(e) => updateTodoDescription(todo, e.target.value)}
+                            // onBlur={() => saveTodo(todo.id)} // Save when user clicks away
+                            className={`w-full bg-transparent border-none outline-none resize-none min-h-[60px] ${
+                              todo.status === "completed"
+                                ? 'line-through text-gray-500'
+                                : 'text-gray-600'
+                            } focus:bg-white focus:border focus:border-blue-200 focus:rounded px-2 py-1 transition-colors`}
+                            placeholder="Add a description..."
+                          />
+                          
+                          {/* Action Buttons */}
+                          <div className="flex justify-between items-center">
+                            <button
+                              onClick={() => deleteTodo(todo.id)}
+                              className="px-3 py-2 bg-red-600 text-white hover:bg-red-700 rounded transition-colors text-sm"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => saveTodo(todo.id)}
+                              className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors text-sm"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+
+
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Todo Stats */}
+              {todos.length > 0 && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Total: {todos.length}</span>
+                    <span>
+                      Completed: {todos.filter(todo => todo.status === "completed").length}
+                    </span>
+                    <span>
+                      Remaining: {todos.filter(todo => todo.status === "pending").length}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
