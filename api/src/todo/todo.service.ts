@@ -7,6 +7,8 @@ import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { QueryTodoDto } from './dto/query-todo.dto';
 
+import { TodoStatus } from './entities/todo.entity';
+
 @Injectable()
 export class TodoService {
   constructor(
@@ -70,8 +72,8 @@ export class TodoService {
 
   async update(id: string, updateTodoDto: UpdateTodoDto): Promise<Todo> {
     const todo = await this.findOne(id);
-    Object.assign(todo, updateTodoDto);
-    return this.todoRepository.save(todo);
+    var mergedTodo = this.todoRepository.merge(todo, updateTodoDto);
+    return this.todoRepository.save(mergedTodo);
   }
 
   async remove(id: string): Promise<void> {
