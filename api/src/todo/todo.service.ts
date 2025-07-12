@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { Todo } from './entities/todo.entity';
 import { User } from '../user/entities/user.entity';
 import { CreateTodoDto } from './dto/create-todo.dto';
@@ -17,7 +19,12 @@ export class TodoService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private readonly rabbitmqService: RabbitmqService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
+
+  private getFindAllCacheKey(userId: string, status?: string, search?: string): string {
+    return `todo:findAll:${userId}:${status || ''}:${search || ''}`;
+  }
 
   async create(createTodoDto: CreateTodoDto, userId: string): Promise<Todo> {
     const user = await this.userRepository.findOne({
@@ -33,8 +40,9 @@ export class TodoService {
       userId: userId
     });
 
-    var newTodo = await this.todoRepository.save(todo);
-    console.log('newTodo', newTodo);
+    const newTodo = await this.todoRepository.save(todo);
+
+    await this.invalidateFindAllCache(userId);
 
     // Send notification to RabbitMQ
     await this.rabbitmqService.sendTodoCreatedNotification({
@@ -50,6 +58,16 @@ export class TodoService {
 
   async findAll(queryDto: QueryTodoDto, userId: string): Promise<Todo[]> {
     const { status, search } = queryDto;
+    
+    // Create cache key based on query parameters
+    const cacheKey = this.getFindAllCacheKey(userId, status, search);
+    
+    // Try to get from cache first
+    const cached = await this.cacheManager.get<Todo[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const queryBuilder = this.todoRepository.createQueryBuilder('todo')
       .leftJoinAndSelect('todo.user', 'user')
       .where('todo.userId = :userId', { userId }); 
@@ -65,9 +83,13 @@ export class TodoService {
       );
     }
 
-    return queryBuilder
+    const todos = await queryBuilder
       .orderBy('todo.createdAt', 'DESC')
       .getMany();
+
+    await this.cacheManager.set(cacheKey, todos, 300000);
+
+    return todos;
   }
 
   async findOne(id: string, userId: string): Promise<Todo> {
@@ -86,12 +108,18 @@ export class TodoService {
   async update(id: string, updateTodoDto: UpdateTodoDto, userId: string): Promise<Todo> {
     const todo = await this.findOne(id, userId);
     const mergedTodo = this.todoRepository.merge(todo, updateTodoDto);
-    return this.todoRepository.save(mergedTodo);
+    const updatedTodo = await this.todoRepository.save(mergedTodo);
+
+    await this.invalidateFindAllCache(userId);
+
+    return updatedTodo;
   }
 
   async remove(id: string, userId: string): Promise<void> {
     const todo = await this.findOne(id, userId);
     await this.todoRepository.remove(todo);
+
+    await this.invalidateFindAllCache(userId);
   }
 
   async getStats(userId: string): Promise<any> {
@@ -123,5 +151,21 @@ export class TodoService {
       inProgress,
       completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
     };
+  }
+
+  private async invalidateFindAllCache(userId: string): Promise<void> {
+    try {
+      const commonKeys = [
+        this.getFindAllCacheKey(userId), // All todos
+        this.getFindAllCacheKey(userId, 'pending'), // Pending todos
+        this.getFindAllCacheKey(userId, 'completed'), // Completed todos
+        this.getFindAllCacheKey(userId, 'in_progress'), // In progress todos
+      ];
+
+      await Promise.all(commonKeys.map(key => this.cacheManager.del(key)));
+
+    } catch (error) {
+      console.error('Error invalidating findAll cache:', error);
+    }
   }
 }

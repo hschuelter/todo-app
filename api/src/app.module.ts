@@ -6,6 +6,8 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthModule } from './auth/auth.module';
 import { TodoModule } from './todo/todo.module';
 import { UserModule } from './user/user.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { cacheConfig } from './config/cache.config';
 
 @Module({
   imports: [
@@ -24,6 +26,7 @@ import { UserModule } from './user/user.module';
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV === 'development',
     }),
+    CacheModule.register(cacheConfig),
     AuthModule,
     TodoModule,
     UserModule,
