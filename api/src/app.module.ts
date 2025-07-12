@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
+import { PassportModule } from '@nestjs/passport';
+import { AuthModule } from './auth/auth.module';
 import { TodoModule } from './todo/todo.module';
 import { UserModule } from './user/user.module';
 
@@ -10,6 +12,7 @@ import { UserModule } from './user/user.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
@@ -21,6 +24,7 @@ import { UserModule } from './user/user.module';
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV === 'development',
     }),
+    AuthModule,
     TodoModule,
     UserModule,
   ],

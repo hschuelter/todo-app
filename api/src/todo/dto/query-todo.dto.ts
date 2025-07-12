@@ -9,8 +9,4 @@ export class QueryTodoDto {
   @IsOptional()
   @IsString()
   search?: string;
-
-  @IsOptional()
-  @IsUUID()
-  userId?: string;
 }
