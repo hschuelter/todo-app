@@ -28,7 +28,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
     setAuthError('');
 
     try {
-      const endpoint = isLoginMode ? '/auth/login' : '/users/register';
+      const endpoint = isLoginMode ? '/auth/login' : '/auth/register';
       const body = isLoginMode 
         ? { email, password }
         : { email, password, name };
@@ -48,8 +48,8 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
 
       const data = await response.json();
       
-      // Call the onLogin callback with user data and token
-      console.log('Login successful:', data);
+      // Log the successful login data for tests only
+      // console.log('Login successful:', data);
       onLogin(data.user, data.accessToken);
       
       // Clear form
@@ -95,7 +95,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                 onChange={(e) => setName(e.target.value)}
                 onKeyPress={handleKeyPress}
                 required={!isLoginMode}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter your name"
               />
             </div>
