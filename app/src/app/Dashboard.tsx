@@ -9,6 +9,7 @@ interface Todo {
   description: string;
   status: string;
   userId: number;
+  dueDate?: string; // Added due date field
   isOpen?: boolean;
 }
 
@@ -29,6 +30,7 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [todoTitle, setTodoTitle] = useState<string>('');
   const [todoDescription, setTodoDescription] = useState<string>('');
+  const [todoDueDate, setTodoDueDate] = useState<string>(''); // Added due date state
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
@@ -39,6 +41,44 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   });
+
+  // Helper function to format date for display
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Helper function to check if todo is overdue
+  const isOverdue = (dueDate: string, status: string): boolean => {
+    if (!dueDate || status === 'completed') return false;
+    return new Date(dueDate) < new Date();
+  };
+
+  // Helper function to get due date color
+  const getDueDateColor = (dueDate: string, status: string): string => {
+    if (!dueDate || status === 'completed') return 'text-gray-500';
+    if (isOverdue(dueDate, status)) return 'text-red-500';
+    
+    const today = new Date();
+    const due = new Date(dueDate);
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 1) return 'text-orange-500';
+    if (diffDays <= 3) return 'text-yellow-600';
+    return 'text-green-600';
+  };
+
+  const getDefaultDueDate = (): string => {
+    const date = new Date();
+    date.setDate(date.getDate() + 7);
+    return date.toISOString().split('T')[0];
+};
 
   // Fetch todos on component mount
   useEffect(() => {
@@ -70,10 +110,11 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
 
     try {
       const response = await axios.post(`${API_BASE_URL}/todos`, {
-        title: todoTitle,
-        description: todoDescription,
+        title: todoTitle || '',
+        description: todoDescription || '',
         status: "pending",
-        userId: user.id
+        userId: user.id,
+        dueDate: todoDueDate ? todoDueDate : getDefaultDueDate()
       }, {
         headers: getAuthHeaders(),
       });
@@ -81,6 +122,7 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
       setTodos([...todos, response.data]);
       setTodoTitle('');
       setTodoDescription('');
+      setTodoDueDate('');
       setIsAddTodoModalOpen(false);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
@@ -149,6 +191,7 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
         title: currentTodo.title,
         description: currentTodo.description,
         status: currentTodo.status,
+        dueDate: currentTodo.dueDate || null // Include due date in save
       }, {
         headers: getAuthHeaders(),
       });
@@ -174,6 +217,10 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
     setTodos(todos.map(t => t.id === todo.id ? { ...t, description } : t));
   };
 
+  const updateTodoDueDate = (todo: Todo, dueDate: string) => {
+    setTodos(todos.map(t => t.id === todo.id ? { ...t, dueDate } : t));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -184,7 +231,6 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
             <div>
               <h1 className="text-3xl font-bold text-gray-800">My To Dos</h1>
               <p className="text-gray-600">Welcome back, {user.name}!</p>
-              {/* <p className="text-gray-600">Welcome back, {user.name}!</p> */}
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -248,6 +294,19 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
                     />
                   </div>
 
+                  <div>
+                    <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
+                      Due Date
+                    </label>
+                    <input
+                      id="dueDate"
+                      type="date"
+                      value={todoDueDate}
+                      onChange={(e) => setTodoDueDate(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
                   <div className="flex justify-end space-x-3 pt-4">
                     <button
                       type="button"
@@ -294,7 +353,9 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
                   {todos.map((todo: Todo) => (
                     <div
                       key={todo.id}
-                      className="flex flex-col gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors shadow-md"
+                      className={`flex flex-col gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors shadow-md ${
+                        isOverdue(todo.dueDate || '', todo.status) ? 'bg-red-50' : 'bg-gray-50'
+                      }`}
                     >
                       <div className='flex items-center gap-3'> 
                         <input
@@ -303,17 +364,27 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
                           onChange={() => toggleTodo(todo.id, todo.status)}
                           className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
                         />
-                        <input
-                          type="text"
-                          value={todo.title}
-                          onChange={(e) => updateTodoTitle(todo, e.target.value)}
-                          className={`flex-1 bg-transparent border-none outline-none text-lg font-medium ${
-                            todo.status === "completed"
-                              ? 'line-through text-gray-500'
-                              : 'text-gray-800'
-                          } focus:bg-white focus:border focus:border-blue-200 focus:rounded px-2 py-1 transition-colors`}
-                          placeholder="Todo title..."
-                        />
+                        <div className="flex-1 space-y-1">
+                          <input
+                            type="text"
+                            value={todo.title}
+                            onChange={(e) => updateTodoTitle(todo, e.target.value)}
+                            className={`w-full bg-transparent border-none outline-none text-lg font-medium ${
+                              todo.status === "completed"
+                                ? 'line-through text-gray-500'
+                                : 'text-gray-800'
+                            } focus:bg-white focus:border focus:border-blue-200 focus:rounded px-2 py-1 transition-colors`}
+                            placeholder="Todo title..."
+                          />
+                          {todo.dueDate && (
+                            <div className={`text-sm px-2 ${getDueDateColor(todo.dueDate, todo.status)}`}>
+                              Due: {formatDate(todo.dueDate)}
+                              {isOverdue(todo.dueDate, todo.status) && (
+                                <span className="ml-2 text-red-600 font-medium">OVERDUE</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         
                         <button
                           onClick={() => openTodo(todo.id)}
@@ -343,6 +414,18 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
                             } focus:bg-white focus:border focus:border-blue-200 focus:rounded px-2 py-1 transition-colors`}
                             placeholder="Add a description..."
                           />
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Due Date
+                            </label>
+                            <input
+                              type="date"
+                              value={todo.dueDate || ''}
+                              onChange={(e) => updateTodoDueDate(todo, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
                           
                           <div className="flex justify-between items-center">
                             <button
@@ -377,6 +460,9 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
                     </span>
                     <span>
                       Remaining: {todos.filter(todo => todo.status === "pending").length}
+                    </span>
+                    <span className="text-red-600">
+                      Overdue: {todos.filter(todo => isOverdue(todo.dueDate || '', todo.status)).length}
                     </span>
                   </div>
                 </div>
