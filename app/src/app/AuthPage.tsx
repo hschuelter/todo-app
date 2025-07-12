@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import axios from 'axios';
 
 interface User {
   id: string;
@@ -33,23 +34,13 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
         ? { email, password }
         : { email, password, name };
 
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'POST',
+      const response = await axios.post(`${API_BASE_URL}${endpoint}`, body, {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Authentication failed');
-      }
-
-      const data = await response.json();
-      
-      // Log the successful login data for tests only
-      // console.log('Login successful:', data);
+      const data = response.data;
       onLogin(data.user, data.accessToken);
       
       // Clear form
@@ -58,7 +49,11 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
       setName('');
       
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : 'Authentication failed');
+      if (axios.isAxiosError(err)) {
+        setAuthError(err.response?.data?.message || 'Authentication failed');
+      } else {
+        setAuthError('Authentication failed');
+      }
     } finally {
       setAuthLoading(false);
     }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 interface Todo {
   id: number;
@@ -47,21 +48,15 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
   const fetchTodos = async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/todos`, {
+      const response = await axios.get(`${API_BASE_URL}/todos`, {
         headers: getAuthHeaders(),
       });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          onLogout();
-          return;
-        }
-        throw new Error('Failed to fetch todos');
-      }
-      
-      const data: Todo[] = await response.json();
-      setTodos(data);
+      setTodos(response.data);
     } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        onLogout();
+        return;
+      }
       setError('Failed to load todos');
       console.error('Error fetching todos:', err);
     } finally {
@@ -74,31 +69,24 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
     if (!todoTitle.trim()) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/todos`, {
-        method: 'POST',
+      const response = await axios.post(`${API_BASE_URL}/todos`, {
+        title: todoTitle,
+        description: todoDescription,
+        status: "pending",
+        userId: user.id
+      }, {
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          title: todoTitle,
-          description: todoDescription,
-          status: "pending",
-          userId: user.id
-        }),
       });
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          onLogout();
-          return;
-        }
-        throw new Error('Failed to add todo');
-      }
-
-      const todo: Todo = await response.json();
-      setTodos([...todos, todo]);
+      setTodos([...todos, response.data]);
       setTodoTitle('');
       setTodoDescription('');
       setIsAddTodoModalOpen(false);
     } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        onLogout();
+        return;
+      }
       setError('Failed to add todo');
       console.error('Error adding todo:', err);
     }
@@ -106,27 +94,20 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
 
   const toggleTodo = async (id: number, status: string): Promise<void> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
-        method: 'PUT',
+      const response = await axios.put(`${API_BASE_URL}/todos/${id}`, {
+        status: status === "completed" ? "pending" : "completed",
+      }, {
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          status: status === "completed" ? "pending" : "completed",
-        }),
       });
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          onLogout();
-          return;
-        }
-        throw new Error('Failed to update todo');
-      }
-
-      const updatedTodo: Todo = await response.json();
       setTodos(todos.map(todo => 
-        todo.id === id ? updatedTodo : todo
+        todo.id === id ? response.data : todo
       ));
     } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        onLogout();
+        return;
+      }
       setError('Failed to update todo');
       console.error('Error updating todo:', err);
     }
@@ -134,21 +115,16 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
 
   const deleteTodo = async (id: number): Promise<void> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
-        method: 'DELETE',
+      await axios.delete(`${API_BASE_URL}/todos/${id}`, {
         headers: getAuthHeaders(),
       });
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          onLogout();
-          return;
-        }
-        throw new Error('Failed to delete todo');
-      }
-
       setTodos(todos.filter(todo => todo.id !== id));
     } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        onLogout();
+        return;
+      }
       setError('Failed to delete todo');
       console.error('Error deleting todo:', err);
     }
@@ -169,29 +145,22 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
     if (!currentTodo) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
-        method: 'PUT',
+      const response = await axios.put(`${API_BASE_URL}/todos/${id}`, {
+        title: currentTodo.title,
+        description: currentTodo.description,
+        status: currentTodo.status,
+      }, {
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          title: currentTodo.title,
-          description: currentTodo.description,
-          status: currentTodo.status,
-        }),
       });
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          onLogout();
-          return;
-        }
-        throw new Error('Failed to update todo');
-      }
-
-      const updatedTodo: Todo = await response.json();
       setTodos(todos.map(todo => 
-        todo.id === id ? updatedTodo : todo
+        todo.id === id ? response.data : todo
       ));
     } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        onLogout();
+        return;
+      }
       setError('Failed to update todo');
       console.error('Error updating todo:', err);
     }

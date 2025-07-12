@@ -37,7 +37,6 @@ export default function App() {
           isAuthenticated: true
         });
       } catch (err) {
-        // Clear invalid data
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
         console.error('Failed to parse stored user data:', err);
@@ -69,7 +68,7 @@ export default function App() {
     });
   };
 
-  // Render appropriate component based on authentication state
+  // Render component based on authentication state
   if (!auth.isAuthenticated) {
     return <AuthPage onLogin={handleLogin} />;
   }
