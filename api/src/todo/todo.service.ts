@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Todo } from './entities/todo.entity';
@@ -6,6 +6,7 @@ import { User } from '../user/entities/user.entity';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { QueryTodoDto } from './dto/query-todo.dto';
+import { RabbitmqService } from '../rabbitmq/rabbitmq.service';
 import { TodoStatus } from './entities/todo.entity';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class TodoService {
     private todoRepository: Repository<Todo>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private readonly rabbitmqService: RabbitmqService,
   ) {}
 
   async create(createTodoDto: CreateTodoDto, userId: string): Promise<Todo> {
@@ -31,7 +33,19 @@ export class TodoService {
       userId: userId
     });
 
-    return this.todoRepository.save(todo);
+    var newTodo = await this.todoRepository.save(todo);
+    console.log('newTodo', newTodo);
+
+    // Send notification to RabbitMQ
+    await this.rabbitmqService.sendTodoCreatedNotification({
+      id: newTodo.id,
+      title: newTodo.title,
+      description: newTodo.description,
+      userId: newTodo.userId,
+      createdAt: newTodo.createdAt,
+    });
+
+    return newTodo;
   }
 
   async findAll(queryDto: QueryTodoDto, userId: string): Promise<Todo[]> {
