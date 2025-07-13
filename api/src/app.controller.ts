@@ -4,6 +4,6 @@ import { Controller, Get } from '@nestjs/common';
 export class AppController {
   @Get()
   getHello() {
-    return { message: 'Welcome to the ToDo API!' };
+    return 'Hello World';
   }
 }
