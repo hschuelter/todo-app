@@ -74,12 +74,6 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
     return 'text-green-600';
   };
 
-  const getDefaultDueDate = (): string => {
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
-    return date.toISOString().split('T')[0];
-};
-
   // Fetch todos on component mount
   useEffect(() => {
     fetchTodos();
@@ -110,11 +104,11 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
 
     try {
       const response = await axios.post(`${API_BASE_URL}/todos`, {
-        title: todoTitle || '',
-        description: todoDescription || '',
+        title: todoTitle,
+        description: todoDescription,
         status: "pending",
         userId: user.id,
-        dueDate: todoDueDate ? todoDueDate : getDefaultDueDate()
+        dueDate: todoDueDate || null // Include due date in API call
       }, {
         headers: getAuthHeaders(),
       });
@@ -122,7 +116,7 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
       setTodos([...todos, response.data]);
       setTodoTitle('');
       setTodoDescription('');
-      setTodoDueDate('');
+      setTodoDueDate(''); // Reset due date
       setIsAddTodoModalOpen(false);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
@@ -296,7 +290,7 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
 
                   <div>
                     <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
-                      Due Date
+                      Due Date (Optional)
                     </label>
                     <input
                       id="dueDate"
@@ -421,7 +415,7 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
                             </label>
                             <input
                               type="date"
-                              value={todo.dueDate || ''}
+                              value={todo.dueDate ? new Date(todo.dueDate).toISOString().split('T')[0] : ''}
                               onChange={(e) => updateTodoDueDate(todo, e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
