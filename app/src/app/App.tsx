@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import AuthPage from './AuthPage';
-import Dashboard from './Dashboard';
+import AuthPage from './Pages/AuthPage';
+import Dashboard from './Pages/Dashboard';
 
 interface User {
   id: string;

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axios from 'axios';
-import Dashboard from '../src/app/Dashboard';
+import Dashboard from '../src/app/Pages/Dashboard';
 
 // Mock axios
 jest.mock('axios');

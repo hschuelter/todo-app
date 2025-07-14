@@ -1,6 +1,6 @@
 import App from './App';
-import AuthPage from './AuthPage';
-import Dashboard from './Dashboard';
+import AuthPage from './Pages/AuthPage';
+import Dashboard from './Pages/Dashboard';
 
 export default function Home() {
   return <App />;

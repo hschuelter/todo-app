@@ -15,7 +15,7 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 // Mock AuthPage and Dashboard components
-jest.mock('../src/app/AuthPage', () => {
+jest.mock('../src/app/Pages/AuthPage', () => {
   return function MockAuthPage({ onLogin }: { onLogin: (user: any, token: string) => void }) {
     return (
       <div data-testid="auth-page">
@@ -30,7 +30,7 @@ jest.mock('../src/app/AuthPage', () => {
   };
 });
 
-jest.mock('../src/app/Dashboard', () => {
+jest.mock('../src/app/Pages/Dashboard', () => {
   return function MockDashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
     return (
       <div data-testid="dashboard">
