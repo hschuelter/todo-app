@@ -22,18 +22,6 @@ npm run dev
 
 Open [http://localhost:8080](http://localhost:8080) to view the app.
 
-## Usage
-
-### Authentication
-1. Register a new account or login with existing credentials
-2. Access is required to manage todos
-
-### Managing Todos
-- **Create**: Click "Add Todo" to create a new task
-- **Read**: View all your todos on the main dashboard
-- **Update**: Click on a todo to edit its content or mark as complete
-- **Delete**: Remove todos you no longer need
-
 ## Scripts
 
 ```bash
