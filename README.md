@@ -46,3 +46,10 @@ $ cd api/
 ```bash
 $ cd app/
 ```
+
+4. Running the RabbitMQ worker
+```bash
+$ cd worker/
+$ npm install
+$ node worker.js
+```
