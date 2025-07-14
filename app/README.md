@@ -1,22 +1,6 @@
 # Todo App
 
-A todo application built with Next.js and TypeScript, featuring user authentication and complete CRUD operations for managing todos.
-
-## Features
-
-- ✅ **CRUD Operations**: Create, read, update, and delete todos
-- 🔐 **User Authentication**: Secure login and registration system
-- 🔒 **Protected Routes**: Authentication required for todo management
-- ⚡ **Real-time Updates**: Instant todo updates without page refresh
-- 🎨 **Modern UI**: Clean and intuitive user interface
-
-## Tech Stack
-
-- **Frontend**: Next.js, React, TypeScript
-- **Styling**: Tailwind CSS
-- **Authentication**: JWT Authentication
-- **Database**: PostgreSQL
-- **Testing**: Jest, React Testing Library
+The frontend for the todo application, built with Next.js and TypeScript, featuring user authentication and complete CRUD operations for managing tasks.
 
 ## Getting Started
 

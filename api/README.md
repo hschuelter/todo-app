@@ -2,30 +2,6 @@
 
 A RESTful API for managing todo tasks built with NestJS, TypeScript, PostgreSQL, and Redis caching.
 
-## Features
-
-- ✅ **User Authentication** - JWT-based authentication
-- ✅ **CRUD Operations** - Create, read, update, delete todos
-- ✅ **Advanced Filtering** - Search and filter by status
-- ✅ **Statistics** - Get completion rates and task counts
-- ✅ **Redis Caching** - Optimized performance with caching
-- ✅ **RabbitMQ Integration** - Event-driven notifications
-- ✅ **Swagger Documentation** - Interactive API docs
-- ✅ **Input Validation** - Comprehensive request validation
-- ✅ **Database Relations** - PostgreSQL with TypeORM
-
-## Tech Stack
-
-- **Framework**: NestJS
-- **Language**: TypeScript
-- **Database**: PostgreSQL
-- **Cache**: Redis
-- **Message Queue**: RabbitMQ
-- **ORM**: TypeORM
-- **Authentication**: JWT (Passport)
-- **Validation**: class-validator
-- **Documentation**: Swagger/OpenAPI
-
 ## Project setup
 
 ```bash

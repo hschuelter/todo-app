@@ -158,55 +158,6 @@ describe('Dashboard Component', () => {
     });
   });
 
-//   test('deletes todo successfully', async () => {
-//     const user = userEvent.setup();
-//     mockedAxios.get.mockResolvedValueOnce({ data: mockTodos });
-//     mockedAxios.delete.mockResolvedValueOnce({});
-
-//     render(<Dashboard user={mockUser} token={mockToken} onLogout={mockOnLogout} />);
-    
-//     await waitFor(() => {
-//       expect(screen.getByDisplayValue('Test Todo 1')).toBeInTheDocument();
-//     });
-
-//     // Open todo details
-//     const expandButton = screen.getAllByRole('button').find(btn => 
-//       btn.querySelector('svg')
-//     );
-//     if (expandButton) {
-//       await user.click(expandButton);
-//     }
-
-//     // Click delete button
-//     const deleteButton = screen.getByRole('button', { name: '' }); // Delete button with SVG
-//     await user.click(deleteButton);
-    
-//     await waitFor(() => {
-//       expect(mockedAxios.delete).toHaveBeenCalledWith(
-//         'http://localhost:3000/todos/1',
-//         {
-//           headers: {
-//             'Content-Type': 'application/json',
-//             'Authorization': 'Bearer mock-token'
-//           }
-//         }
-//       );
-//     });
-//   });
-
-//   test('handles 401 error by calling onLogout', async () => {
-//     mockedAxios.get.mockRejectedValueOnce({
-//       isAxiosError: true,
-//       response: { status: 401 }
-//     });
-
-//     render(<Dashboard user={mockUser} token={mockToken} onLogout={mockOnLogout} />);
-    
-//     await waitFor(() => {
-//       expect(mockOnLogout).toHaveBeenCalled();
-//     });
-//   });
-
   test('displays todo stats correctly', async () => {
     mockedAxios.get.mockResolvedValueOnce({ data: mockTodos });
 
