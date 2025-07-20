@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-import TodoItem from '../Components/Todo/TodoItem'
-import TodoStats from '../Components/Todo/TodoStats';
-import AddTodoModal from '../Components/Todo/AddTodoModal';
-import Header from '../Components/Layout/Header';
+import TodoItem from '../components/Todo/TodoItem'
+import TodoStats from '../components/Todo/TodoStats';
+import AddTodoModal from '../components/Todo/AddTodoModal';
+import Header from '../components/Layout/Header';
 
 interface Todo {
   id: number;
