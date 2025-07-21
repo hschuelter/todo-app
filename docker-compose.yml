@@ -1,9 +1,41 @@
 version: '3.8'
 
 services:
+  app-dev:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: development
+    container_name: todo-backend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/todoapp
+      - REDIS_URL=redis://:redispassword@redis:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    networks:
+      - app-network
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+      - ./logs:/app/logs
+    profiles:
+      - dev
+
   postgres:
     image: postgres:15
     container_name: todo-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: todoapp
       POSTGRES_USER: postgres
@@ -14,10 +46,16 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   rabbitmq:
     image: rabbitmq:3-management
     container_name: todo-rabbitmq
+    restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: admin
@@ -28,6 +66,11 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -40,6 +83,11 @@ services:
     command: redis-server --appendonly yes --requirepass redispassword
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "redispassword", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
 volumes:
   postgres_data:

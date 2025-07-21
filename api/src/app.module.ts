@@ -17,7 +17,7 @@ import { cacheConfig } from './config/cache.config';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
+      host: process.env.DB_HOST || 'postgres',
       port: parseInt(process.env.DB_PORT || '5432'),
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'password',
