@@ -34,20 +34,15 @@ A classic To Do application, used for managing time sensitive tasks
 
 1. Start Dockers (PostgreSQL, RabbitMQ, Redis)
 ```bash
-$ docker-compose up -d
+$ docker-compose --profile dev up -d
 ```
 
-2. Follow the steps for installing and locally running the api
-```bash
-$ cd api/
-```
-
-3. Follow the steps for installing and locally running the app
+2. Follow the steps for installing and locally running the app
 ```bash
 $ cd app/
 ```
 
-4. Running the RabbitMQ worker
+3. Running the RabbitMQ worker
 ```bash
 $ cd worker/
 $ npm install

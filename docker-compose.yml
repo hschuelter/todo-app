@@ -20,15 +20,36 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app-network
     volumes:
       - ./api:/app
       - /app/node_modules
       - ./logs:/app/logs
+    profiles:
+      - dev
+
+  frontend-dev:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+      target: development
+    container_name: todo-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    networks:
+      - app-network
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+      - /app/.next
     profiles:
       - dev
 
