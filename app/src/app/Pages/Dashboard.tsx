@@ -1,22 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-
 import TodoItem from '../components/Todo/TodoItem'
 import TodoStats from '../components/Todo/TodoStats';
 import AddTodoModal from '../components/Todo/AddTodoModal';
 import Header from '../components/Layout/Header';
-
-interface Todo {
-  id: number;
-  title: string;
-  description: string;
-  status: string;
-  userId: number;
-  dueDate?: string;
-  isOpen?: boolean;
-}
+import { useTodos } from '../hooks/useTodos';
+import { useAddTodoModal } from '../hooks/useAddTodoModal';
 
 interface User {
   id: string;
@@ -31,195 +20,37 @@ interface TodoAppProps {
 }
 
 export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
-  const [isAddTodoModalOpen, setIsAddTodoModalOpen] = useState(false);
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [todoTitle, setTodoTitle] = useState<string>('');
-  const [todoDescription, setTodoDescription] = useState<string>('');
-  const [todoDueDate, setTodoDueDate] = useState<string>(''); // Added due date state
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const {
+    todos,
+    loading,
+    error,
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+    openTodo,
+    saveTodo,
+    updateTodoTitle,
+    updateTodoDescription,
+    updateTodoDueDate,
+    clearError,
+    formatDate,
+    isOverdue,
+    getDueDateColor,
+  } = useTodos({ user, token, onLogout });
 
-  const API_BASE_URL: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
-  // Helper function to get auth headers
-  const getAuthHeaders = () => ({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  });
-
-  // Helper function to format date for display
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      timeZone: 'UTC'
-    });
-  };
-
-  // Helper function to check if todo is overdue
-  const isOverdue = (dueDate: string, status: string): boolean => {
-    if (!dueDate || status === 'completed') return false;
-    return new Date(dueDate) < new Date();
-  };
-
-  // Helper function to get due date color
-  const getDueDateColor = (dueDate: string, status: string): string => {
-    if (!dueDate || status === 'completed') return 'text-gray-500';
-    if (isOverdue(dueDate, status)) return 'text-red-500';
-    
-    const today = new Date();
-    const due = new Date(dueDate);
-    const diffTime = due.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays <= 1) return 'text-orange-500';
-    if (diffDays <= 3) return 'text-yellow-600';
-    return 'text-green-600';
-  };
-
-  // Fetch todos on component mount
-  useEffect(() => {
-    fetchTodos();
-  }, []);
-
-  const fetchTodos = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/todos`, {
-        headers: getAuthHeaders(),
-      });
-      setTodos(response.data);
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        onLogout();
-        return;
-      }
-      setError('Failed to load todos');
-      console.error('Error fetching todos:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addTodo = async (e: React.FormEvent<HTMLFormElement> | React.MouseEvent): Promise<void> => {
-    e.preventDefault();
-    if (!todoTitle.trim()) return;
-
-    try {
-      const response = await axios.post(`${API_BASE_URL}/todos`, {
-        title: todoTitle,
-        description: todoDescription,
-        status: "pending",
-        userId: user.id,
-        dueDate: todoDueDate || null // Include due date in API call
-      }, {
-        headers: getAuthHeaders(),
-      });
-
-      setTodos([...todos, response.data]);
-      setTodoTitle('');
-      setTodoDescription('');
-      setTodoDueDate(''); // Reset due date
-      setIsAddTodoModalOpen(false);
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        onLogout();
-        return;
-      }
-      setError('Failed to add todo');
-      console.error('Error adding todo:', err);
-    }
-  };
-
-  const toggleTodo = async (id: number, status: string): Promise<void> => {
-    try {
-      const response = await axios.put(`${API_BASE_URL}/todos/${id}`, {
-        status: status === "completed" ? "pending" : "completed",
-      }, {
-        headers: getAuthHeaders(),
-      });
-
-      setTodos(todos.map(todo => 
-        todo.id === id ? response.data : todo
-      ));
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        onLogout();
-        return;
-      }
-      setError('Failed to update todo');
-      console.error('Error updating todo:', err);
-    }
-  };
-
-  const deleteTodo = async (id: number): Promise<void> => {
-    try {
-      await axios.delete(`${API_BASE_URL}/todos/${id}`, {
-        headers: getAuthHeaders(),
-      });
-
-      setTodos(todos.filter(todo => todo.id !== id));
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        onLogout();
-        return;
-      }
-      setError('Failed to delete todo');
-      console.error('Error deleting todo:', err);
-    }
-  };
-
-  const openTodo = (id: number): void => {
-    setTodos(prevTodos => 
-      prevTodos.map(todo => 
-        todo.id === id 
-          ? { ...todo, isOpen: !todo.isOpen }
-          : todo
-      )
-    );
-  };
-
-  const saveTodo = async (id: number): Promise<void> => {
-    const currentTodo = todos.find(t => t.id === id);
-    if (!currentTodo) return;
-
-    try {
-      const response = await axios.put(`${API_BASE_URL}/todos/${id}`, {
-        title: currentTodo.title,
-        description: currentTodo.description,
-        status: currentTodo.status,
-        dueDate: currentTodo.dueDate || null // Include due date in save
-      }, {
-        headers: getAuthHeaders(),
-      });
-
-      setTodos(todos.map(todo => 
-        todo.id === id ? response.data : todo
-      ));
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        onLogout();
-        return;
-      }
-      setError('Failed to update todo');
-      console.error('Error updating todo:', err);
-    }
-  };
-
-  const updateTodoTitle = (todo: Todo, title: string) => {
-    setTodos(todos.map(t => t.id === todo.id ? { ...t, title } : t));
-  };
-  
-  const updateTodoDescription = (todo: Todo, description: string) => {
-    setTodos(todos.map(t => t.id === todo.id ? { ...t, description } : t));
-  };
-
-  const updateTodoDueDate = (todo: Todo, dueDate: string) => {
-    setTodos(todos.map(t => t.id === todo.id ? { ...t, dueDate } : t));
-  };
+  const {
+    isOpen: isAddTodoModalOpen,
+    todoTitle,
+    todoDescription,
+    todoDueDate,
+    isSubmitting,
+    setTodoTitle,
+    setTodoDescription,
+    setTodoDueDate,
+    openModal: openAddTodoModal,
+    closeModal: closeAddTodoModal,
+    handleSubmit: handleAddTodoSubmit,
+  } = useAddTodoModal({ onAddTodo: addTodo });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -229,25 +60,34 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
           <Header
             user={user}
             onLogout={onLogout}
-            onAddTodo={() => setIsAddTodoModalOpen(true)}
+            onAddTodo={openAddTodoModal}
           />
 
           <AddTodoModal
             isOpen={isAddTodoModalOpen}
-            onClose={() => setIsAddTodoModalOpen(false)}
-            onSubmit={addTodo}
+            onClose={closeAddTodoModal}
+            onSubmit={handleAddTodoSubmit}
             todoTitle={todoTitle}
             setTodoTitle={setTodoTitle}
             todoDescription={todoDescription}
             setTodoDescription={setTodoDescription}
             todoDueDate={todoDueDate}
             setTodoDueDate={setTodoDueDate}
+            isSubmitting={isSubmitting}
           />
 
           {/* Error Message */}
           {error && (
             <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-              {error}
+              <div className="flex justify-between items-center">
+                <span>{error}</span>
+                <button
+                  onClick={clearError}
+                  className="text-red-700 hover:text-red-900 ml-4"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           )}
 
@@ -266,7 +106,7 @@ export default function TodoApp({ user, token, onLogout }: TodoAppProps) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {todos.map((todo: Todo) => (
+                  {todos.map((todo) => (
                     <TodoItem
                       key={todo.id}
                       todo={todo}
