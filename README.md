@@ -36,10 +36,9 @@ A classic To Do application, used for managing time sensitive tasks
 ```bash
 $ docker-compose --profile dev up -d
 ```
-
-2. Follow the steps for installing and locally running the app
+2. Getting the logs from Dockers
 ```bash
-$ cd app/
+$ docker compose logs -f app-dev
 ```
 
 3. Running the RabbitMQ worker
@@ -47,4 +46,9 @@ $ cd app/
 $ cd worker/
 $ npm install
 $ node worker.js
+```
+
+4. Stop Dockers
+```bash
+$ docker-compose --profile dev down
 ```
